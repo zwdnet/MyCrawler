@@ -74,7 +74,9 @@ class MyCrawler():
     #判断currentUrl与aimUrl是否是一个网站
     def judgeUrl(self, currentUrl, aimUrl):
         currentUrl = re.findall(r'http://.*?(?=/)', currentUrl)
-        if currentUrl == aimUrl:
+        if currentUrl == []:
+            return False
+        if currentUrl[0] == aimUrl:
             return True
         return False
     #抓取过程主函数
@@ -82,11 +84,11 @@ class MyCrawler():
         #循环条件：抓取深度不超过crawl_deepth
         while self.current_deepth <= crawl_deepth:
             tempList = []    #用来保存循环中找到的新的链接
+            n = 0            #控制程序输出的变量
             #循环条件：待抓取的链接不空
             while not self.linkQuence.unVisitedUrlEnmpy():
                 #队头url出列
                 visitUrl = self.linkQuence.unVisitedUrlDequence()
-                print u"\"%s\"正在抓这个网址" % visitUrl
                 if visitUrl is None or visitUrl == "":
                     continue
                 if self.judgeUrl(visitUrl, aimUrl):
@@ -98,12 +100,19 @@ class MyCrawler():
                     tempList.append(link)
                 #将url放入已访问的url中
                 self.linkQuence.addVisitedUrl(visitUrl)
-                print u"访问链接计数:" + str(self.linkQuence.getVisitedUrlCount()) + u" 未访问链接计数:" + str(self.linkQuence.getUnvisitedUrlCount()) + u"当前深度:" + str(self.current_deepth)
+                #输出信息
+                n += 1
+                if n >= 10:
+                    print u"正在抓这个网址:\"%s\"" % visitUrl
+                    s = u"访问链接计数:" + str(self.linkQuence.getVisitedUrlCount())
+                    s += u",有" + str(len(self.linkQuence.getUnvisitedUrl())) + u"个未访问链接," 
+                    s += u"当前抓取深度为:" + str(self.current_deepth)
+                    s += u",网页抓取中......"
+                    print s
+                    n = 0
             #将上面循环中找到的所有未访问的url入列
             for link in tempList:
                 self.linkQuence.addUnvisitedUrl(link)
-            print u"%d个未访问链接:" % len(self.linkQuence.getUnvisitedUrl())
-            print u"当前抓取深度为:%d" % self.current_deepth
             self.current_deepth += 1
         return -1
     
@@ -118,12 +127,12 @@ class MyCrawler():
             for i in a:
                 if i["href"].find("http://") != -1:
                     links.append(i["href"])
-        else:
-            print u"获取当前网页失败，错误信息:", data[0]
+#         else:
+#             print u"获取当前网页失败，错误信息:", data[0]
         return links
     
     #获取网页源码
-    def getPageSource(self, url, timeout=100, coding=None):
+    def getPageSource(self, url, timeout=5, coding=None):
         try:
             socket.setdefaulttimeout(timeout)
             req = urllib2.Request(url)
@@ -145,13 +154,16 @@ class MyCrawler():
                 page = page.decode(coding).encode('utf-8')
             return ["200", page]
         except Exception, e:
-            print str(e)
+            #print str(e)
             return [str(e), None]
         
 def main(seeds, aimUrl, crawl_deepth):
     craw = MyCrawler(seeds)
     dis = craw.crawling(seeds, aimUrl, crawl_deepth)
-    print seeds + u"与" + aimUrl + u"之间的距离为:" + str(dis)
+    if dis == -1:
+        print u"无法找到" + seeds + u"与" + aimUrl + u"的链接"
+    else:
+        print seeds + u"与" + aimUrl + u"之间的距离为:" + str(dis)
     
 if __name__ == "__main__":
     url = raw_input(u"输入种子网址:")
